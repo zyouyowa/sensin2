@@ -1,11 +1,12 @@
 import os
-
-import chainer
-import chainer.links as L
 import cv2
 import numpy as np
+import chainer
+import chainer.links as L
+import chainer.functions as F
 from chainer import Chain
-from chainer import Variable, optimizers
+from chainer import Variable, optimizers, training, iterators
+from chainer.training import extensions
 
 from src import myUtil
 
@@ -13,18 +14,18 @@ from src import myUtil
 class CNN(Chain):
     def __init__(self):
         super(CNN, self).__init__(
-            dconv1 = L.Convolution2D(1, 48, 3),
-            dconv2 = L.Convolution2D(48, 128, 5),
-            uconv1 = L.Deconvolution2D(128, 48, 5),
-            uconv2 = L.Deconvolution2D(48, 1, 3)
+            dconv1 = L.Convolution2D(1, 10, 3),
+            #dconv2 = L.Convolution2D(48, 128, 5),
+            #uconv1 = L.Deconvolution2D(128, 48, 5),
+            uconv2 = L.Deconvolution2D(10, 1, 3)
         )
 
-    def __call__(self, X):
+    def __call__(self, X, t):
         h = self.dconv1(X)
-        h = self.dconv2(h)
-        h = self.uconv1(h)
+        #h = self.dconv2(h)
+        #h = self.uconv1(h)
         h = self.uconv2(h)
-        return h
+        return F.mean_squared_error(h, t)
 
 class ImagesDataset(chainer.dataset.DatasetMixin):
     def __init__(self, dir_path='./imgs/patches', dtype=np.float32):
@@ -42,9 +43,9 @@ class ImagesDataset(chainer.dataset.DatasetMixin):
     def get_example(self, i):
         path_c, path_p = self._pairs[i]
         img_c = cv2.imread(path_c, cv2.IMREAD_GRAYSCALE)/255
-        img_c = img_c.reshape(1, img_c.shape[0], img_c.shape[1])
+        img_c = img_c.reshape(1, img_c.shape[0], img_c.shape[1]).astype(self._dtype)
         img_p = cv2.imread(path_p, cv2.IMREAD_GRAYSCALE)/255
-        img_p = img_p.reshape(1, img_p.shape[0], img_p.shape[1])
+        img_p = img_p.reshape(1, img_p.shape[0], img_p.shape[1]).astype(self._dtype)
         return img_c, img_p
 
 def TestCNN():
@@ -69,16 +70,19 @@ def main():
     model = CNN()
     optimizer = optimizers.Adam()
     optimizer.setup(model)
-    for i in range(56):
-        contour_path = os.path.abspath("./imgs/patches/contour/" + i + ".png")
-        pencil_path = os.path.abspath("./imgs/patches/contour/" + i + ".png")
-        contour_img = cv2.imread(contour_path, cv2.IMREAD_GRAYSCALE)
-        contour_img = contour_img.reshape(1, contour_img.shape[0], contour_img.shape[1])
-        pencil_img = cv2.imread(pencil_path, cv2.IMREAD_GRAYSCALE)
-        pencil_img = pencil_img.reshape(1, pencil_img.shape[0], pencil_img.shape[1])
+    train_data = ImagesDataset()
+    train_iter = iterators.SerialIterator(train_data, batch_size=3)
+    updater = training.StandardUpdater(train_iter, optimizer)
+    trainer = training.Trainer(updater, (10, 'epoch'), out="result")
 
+    trainer.extend(extensions.Evaluator(train_iter, model))
+    trainer.extend(extensions.LogReport())
+    trainer.extend(extensions.PrintReport(["epoch", "main/loss"]))
+    trainer.extend(extensions.ProgressBar())
+    trainer.run()
 
 if __name__ == '__main__':
     #TestCNN()
-    TestDataset()
+    #TestDataset()
+    main()
     pass
