@@ -1,10 +1,13 @@
 # 現状
 
 * 論文を読んで構造などの詳細を調べている
+  * 3.1 - 3.4前半まで読んだ
 
 # TODO
 
 * 論文から必要な式を探す
+  * 3*3 convolution kernelsの元論文を読む
+  * no explicit poolingの元論文を読む
 * Chainerで↑を実現する方法の調査
 * 実装
 
@@ -13,12 +16,12 @@
 ## 使われているらしい技術
 
 * batch normalization
-  * どこに入れてるのか明記されてない...?
-  * やること的にはどの層にくっついていてもおかしくない
+  * 最終層以外のすべての層に使う
+  * chainerのでok
 * ADADELTA
-  * 書くだけ
+  * chianerのでok
   * ここをAdamにしたらどうなるか気になる
-* 3*3 convolution kernels
+* 3*3 convolution kernels ( https://arxiv.org/pdf/1409.1556.pdf )
   * なにこれ?
   * 多分ただのフィルタサイズで、3*3が良いという話...?
   * 元論文を読んだ方が良い...
@@ -26,7 +29,7 @@
   * 元論文ではupsamplingと言われている
   * Deconvolutionとはやってることが違う
   * 自分で実装する
-* no explicit pooling
+* no explicit pooling ( https://arxiv.org/pdf/1412.6806.pdf )
   * なにこれ?
 
 ## その他
