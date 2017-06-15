@@ -9,7 +9,10 @@
   * 3*3 convolution kernelsの元論文を読む
   * no explicit poolingの元論文を読む
 * Chainerで↑を実現する方法の調査
+  * up convolution
 * 実装
+  * Deconvolutionを使って実装
+    * データセット256*256のものを用意
 
 # メモ
 
@@ -30,7 +33,8 @@
   * Deconvolutionとはやってることが違う
   * 自分で実装する
 * no explicit pooling ( https://arxiv.org/pdf/1412.6806.pdf )
-  * なにこれ?
+  * プーリングをしない
+
 
 ## その他
 
