@@ -22,4 +22,4 @@ def rename_dataset(inputs_path, teachers_path):
         file_index += 1
 
 if __name__ == '__main__':
-    rename_dataset("./imgs/patches/contour", "./imgs/patches/pencil")
+    rename_dataset('./imgs/patches/contour', './imgs/patches/pencil')

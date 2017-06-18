@@ -6,6 +6,6 @@ def make_pencil_sketch_image(path):
     return gray
 
 if __name__ == '__main__':
-    path = "/Users/iguchiyusuke/Pictures/caffeine_contour_test.jpg"
+    path = '/Users/iguchiyusuke/Pictures/caffeine_contour_test.jpg'
     pencil_sketch = make_pencil_sketch_image(path=path)
-    cv2.imwrite("/Users/iguchiyusuke/Pictures/caffeine_pencil_sketch_test.jpg", pencil_sketch)
+    cv2.imwrite('/Users/iguchiyusuke/Pictures/caffeine_pencil_sketch_test.jpg', pencil_sketch)
