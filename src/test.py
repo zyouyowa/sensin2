@@ -7,16 +7,23 @@ import chainer.functions as F
 from chainer import Chain
 from chainer import Variable, optimizers, training, iterators, cuda
 from chainer.training import extensions
-from src.main import ImagesDataset, CNN
+from src.main import ImagesDataset, SketchSimplification
 
 from src import myUtil
 
 def TestCNN():
-    img = cv2.imread(os.path.abspath("./imgs/patches/contour/0.png"), cv2.IMREAD_GRAYSCALE)
-    data = np.asarray(img, np.float32).reshape((1, 1, 84, 147)) / 255
+    img = cv2.imread(os.path.abspath("./imgs/patches/contour/2200640_p0_2_5.jpg"), cv2.IMREAD_GRAYSCALE)
+    print(img.shape)
+    data = np.asarray(img, np.float32).reshape((1, 1, 256, 256)) / 255
     X = Variable(data)
-    model = CNN()
-    y = model.forward(X)
+    y1 = L.Convolution2D(1, 48, 5, 2, 2)(X)
+    print(y1)
+    y2 = L.Convolution2D(48, 128, 3, 1, 1)(y1)
+    print(y2)
+    y3 = L.Deconvolution2D(128, 48, ksize=4, stride=2, pad=1)(y2)
+    print(y3)
+    #model = CNN()
+    #y = model.forward(X)
 
 def TestDataset():
     train = ImagesDataset()
@@ -32,7 +39,7 @@ def TestDataset():
 def main():
     gpu_device = 0
     cuda.get_device_from_id(device_id=gpu_device).use()
-    model = CNN()
+    model = SketchSimplification()
     model.to_gpu()
     optimizer = optimizers.Adam()
     optimizer.setup(model)
@@ -80,7 +87,7 @@ def main():
     """
 
 if __name__ == '__main__':
-    #TestCNN()
+    TestCNN()
     #TestDataset()
-    main()
+    #main()
     pass
