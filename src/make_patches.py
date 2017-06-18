@@ -2,8 +2,8 @@ import cv2
 import os
 from src import myUtil
 
-H = 84
-W = 147
+H = 256
+W = 256
 
 
 def check_minimum(path):
@@ -42,13 +42,19 @@ def make_patches(path, path_patches):
             for j in range(w_size):
                 j += 1
                 # _garbage分は作成されるパッチには使用されない
-                patch = img[h_garbage:i*H+h_garbage, w_garbage:j*W+w_garbage]
-                patch_name = os.path.abspath(os.path.join(path_patches, f))
-                print("to: " + patch_name)
-                cv2.imwrite(patch_name, patch)
+                h_begin = h_garbage + (i-1) * H
+                h_end = h_garbage + i * H
+                w_begin = w_garbage + (j-1) * W
+                w_end = w_garbage + j * W
+                patch = img[h_begin:h_end, w_begin:w_end]
+                name, ext = os.path.splitext(f)
+                patch_name = name + '_' + str(i) + '_' + str(j) + ext
+                patch_path = os.path.abspath(os.path.join(path_patches, patch_name))
+                print("to: " + patch_path)
+                cv2.imwrite(patch_path, patch)
 
 
 if __name__ == '__main__':
-    check_minimum("./imgs/pencil")
+    #check_minimum("./imgs/pencil")
     make_patches("./imgs/contour", "./imgs/patches/contour")
     make_patches("./imgs/pencil", "./imgs/patches/pencil")
