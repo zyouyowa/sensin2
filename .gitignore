@@ -489,10 +489,17 @@ __pycache__/
 # End of https://www.gitignore.io/api/visualstudio
 
 # My Project Ignore Settings
+imgs
 imgs/colors/*
 imgs/contour/*
 imgs/pencil/*
 imgs/patches/contour/*
 imgs/patches/pencil/*
+imgs/trains/*
+imgs/trains/contour*
+imgs/trains/pencil*
+imgs/tests/*
+imgs/tests/contour/*
+imgs/tests/pencil/*
 *.pyproj
 src/download_settings.py
