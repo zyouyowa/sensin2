@@ -495,3 +495,4 @@ imgs/pencil/*
 imgs/patches/contour/*
 imgs/patches/pencil/*
 *.pyproj
+src/download_settings.py
