@@ -140,8 +140,8 @@ def main():
     train_data = ImagesDataset(dir_path='./imgs/trains', dtype=cuda.cupy.float32)
     test_data = ImagesDataset(dir_path='./imgs/tests', dtype=cuda.cupy.float32)
 
-    n_epoch = 30
-    batch_size = 3
+    n_epoch = 1000
+    batch_size = 6
 
     for epoch in range(1, n_epoch+1):
         print('epoch:', epoch)
