@@ -5,9 +5,8 @@ from chainer.utils import type_check
 
 
 class WeightedMeanSquaredError(function.Function):
-    def __init__(self, bins, alpha, beta, dh, bh):
+    def __init__(self, alpha, beta, dh, bh):
         super.__init__()
-        self.bins = bins
         self.alpha = alpha
         self.beta = beta
         self.dh = dh
@@ -23,12 +22,22 @@ class WeightedMeanSquaredError(function.Function):
 
     def forward_cpu(self, inputs):
         x0, x1 = inputs
+        padded_x1 = numpy.pad(x1, self.dh, 'constant', constant_values=0)
+        self.M = numpy.ones(x1.shape, x1.dtype)
+        for u in range(self.dh, x1.shape[0] + self.dh):
+            for v in range(self.dh, x1.shape[1] + self.dh):
+                if padded_x1[u, v] == 1:
+                    continue
+                part_x1 = padded_x1[u - self.dh:u + self.dh + 1, v - self.dh:v + self.dh + 1]
+                histogram = numpy.histogram(part_x1, self.bh)
+                for bin_i in range(1, len(histogram[1])):
+                    if padded_x1[u, v] < histogram[1][bin_i]:
+                        H_I_u_v = histogram[0][bin_i-1]
+                        M_u_v = min(self.alpha * numpy.exp(-H_I_u_v) + self.beta, 1)
+                        self.M[u-self.dh, v-self.dh] = M_u_v
+                        break
         self.diff = x0 - x1
-        histogram = numpy.histogram(x1, self.bins)
-        # TODO: H(I, u, v)の計算
-        # TODO: Mの計算
-        diff = self.diff.ravel()
-        return numpy.array(diff.dot(diff) / diff.size, dtype=diff.dtype),
+        return numpy.linalg.norm(self.M * self.diff)
 
     def forward_gpu(self, inputs):
         x0, x1 = inputs
