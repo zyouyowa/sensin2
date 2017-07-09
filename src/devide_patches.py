@@ -46,4 +46,4 @@ def shuffle(train_n, test_n):
 
 
 if __name__ == '__main__':
-    shuffle(512, 128)
+    shuffle(128, 16)

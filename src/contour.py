@@ -1,6 +1,7 @@
-''''''
+"""
 画像を線画化する処理
-''''''
+"""
+
 import cv2
 import numpy as np
 
@@ -25,6 +26,16 @@ def make_contour_image(path):
 
     # 白黒反転
     contour = 255 - diff
+
+    def downer(elem, threthold):
+        if elem < threthold:
+            return 0
+        else:
+            return 255
+
+    vdowner = np.vectorize(downer)
+    contour = vdowner(contour, 0.9*255)
+
     return contour
 
 if __name__ == '__main__':

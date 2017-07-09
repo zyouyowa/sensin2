@@ -1,4 +1,5 @@
 import os
+import time
 import cv2
 import numpy as np
 import chainer
@@ -7,10 +8,15 @@ import chainer.functions as F
 from chainer import Chain, Variable, optimizers, cuda, serializers
 
 from src import myUtil
+import src.weighted_mean_squared_error as MyF
 
 
 class SketchSimplification(Chain):
-    def __init__(self):
+    def __init__(self, alpha, beta, dh, bh):
+        self.alpha = alpha
+        self.beta = beta
+        self.dh = dh
+        self.bh = bh
         ch1 = 48
         ch2 = 128
         ch3 = 256
@@ -78,7 +84,8 @@ class SketchSimplification(Chain):
 
     def __call__(self, X, t):
         h = self.forward(X)
-        loss = F.mean_squared_error(h, t)
+        #loss = F.mean_squared_error(h, t)
+        loss = MyF.weighted_mean_squared_error(h, t, self.alpha, self.beta, self.dh, self.bh)
         #chainer.report({'loss': loss}, self)
         return loss
 
@@ -133,16 +140,17 @@ class ImagesDataset(chainer.dataset.DatasetMixin):
 def main():
     gpu_device = 0
     cuda.get_device_from_id(device_id=gpu_device).use()
-    model = SketchSimplification()
+    model = SketchSimplification(6, -2, 2, 10)
     model.to_gpu()
     optimizer = optimizers.Adam()
     optimizer.setup(model)
     train_data = ImagesDataset(dir_path='./imgs/trains', dtype=cuda.cupy.float32)
     test_data = ImagesDataset(dir_path='./imgs/tests', dtype=cuda.cupy.float32)
 
-    n_epoch = 1000
+    n_epoch = 50
     batch_size = 6
 
+    begin_time = time.time()
     for epoch in range(1, n_epoch+1):
         print('epoch:', epoch)
         perm = np.random.permutation(len(train_data))
@@ -161,16 +169,35 @@ def main():
             loss.backward()
             optimizer.update()
             sum_loss += float(loss.data) * len(y_batch)
+        print('train mean loss:', sum_loss/len(train_data))
+
+        perm = np.random.permutation(len(test_data))
+        sum_loss = 0
+        for i in range(0, len(test_data), batch_size):
+            batch = [test_data.get_example(j) for j in perm[i:i+batch_size]]
+            x_batch = np.asarray([batch[j][0] for j in range(len(batch))])
+            x_batch = cuda.to_gpu(x_batch)
+            x_batch = Variable(x_batch)
+            y_batch = np.asarray([batch[j][1] for j in range(len(batch))])
+            y_batch = cuda.to_gpu(y_batch)
+            y_batch = Variable(y_batch)
+
+            loss = model(x_batch, y_batch)
+            sum_loss += float(loss.data) * len(y_batch)
+        print('test  mean loss:', sum_loss/len(test_data))
+        print("")
+
+        # output example
         if epoch%1 == 0:
             test_img = cuda.to_gpu(np.asarray([test_data.get_example(len(test_data) - 1)[0]]))
             test_result = cuda.to_cpu(model.forward(Variable(test_img)).data)[0][0]
             filepath = os.path.abspath('./result/' + str(epoch) + '.png')
-            print(test_result.shape, test_result)
             cv2.imwrite(filepath, test_result * 255)
-        print('train mean loss:', sum_loss/len(train_data))
-
+    calc_time = time.time() - begin_time
+    print('time: ', calc_time, '[s]')
     model.to_cpu()
-    serializers.save_npz('model1.npz', model)
+    serializers.save_npz('model2.npz', model)
+    print('save model to model2.npz')
 
 if __name__ == '__main__':
     main()
