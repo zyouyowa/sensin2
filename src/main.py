@@ -1,4 +1,5 @@
 import os
+import gc
 import time
 import cv2
 import numpy as np
@@ -147,7 +148,7 @@ def main():
     train_data = ImagesDataset(dir_path='./imgs/trains', dtype=cuda.cupy.float32)
     test_data = ImagesDataset(dir_path='./imgs/tests', dtype=cuda.cupy.float32)
 
-    n_epoch = 50
+    n_epoch = 200
     batch_size = 6
 
     begin_time = time.time()
@@ -191,13 +192,16 @@ def main():
         if epoch%1 == 0:
             test_img = cuda.to_gpu(np.asarray([test_data.get_example(len(test_data) - 1)[0]]))
             test_result = cuda.to_cpu(model.forward(Variable(test_img)).data)[0][0]
-            filepath = os.path.abspath('./result/' + str(epoch) + '.png')
+            filepath = os.path.abspath('./result_wmse/' + str(epoch) + '.png')
             cv2.imwrite(filepath, test_result * 255)
+        if epoch%10 == 0:
+            gc.collect()
+
     calc_time = time.time() - begin_time
     print('time: ', calc_time, '[s]')
     model.to_cpu()
-    serializers.save_npz('model2.npz', model)
-    print('save model to model2.npz')
+    serializers.save_npz('model_wmse.npz', model)
+    print('save model to model_wmse.npz')
 
 if __name__ == '__main__':
     main()

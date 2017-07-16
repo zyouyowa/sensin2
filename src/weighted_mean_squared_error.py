@@ -35,7 +35,7 @@ class WeightedMeanSquaredError(function.Function):
                         histogram = numpy.histogram(part_x1, self.bh)
                         for bin_i in range(1, len(histogram[1])):
                             if padded_x1[u, v] < histogram[1][bin_i]:
-                                H_I_u_v = histogram[0][bin_i - 1]  # /part_x1.size
+                                H_I_u_v = histogram[0][bin_i - 1] / part_x1.size
                                 M_u_v = min(self.alpha * numpy.exp(-H_I_u_v) + self.beta, 1)
                                 M[batch][ch][u - self.dh, v - self.dh] = M_u_v
                                 break
@@ -44,16 +44,15 @@ class WeightedMeanSquaredError(function.Function):
     def forward_cpu(self, inputs):
         x0, x1 = inputs
         self.M = self.weight(x1)
-        self.diff = x0 - x1
-        self.wdiff = self.M * self.diff
+        self.wdiff = self.M * (x0 - x1)
         wdiff = self.wdiff.ravel()
         return wdiff.dot(wdiff),
 
     def forward_gpu(self, inputs):
         x0, x1 = inputs
+        #ここをcupyの状態で渡すとどうなる...?
         self.M = cuda.to_gpu(self.weight(cuda.to_cpu(x1)))
-        self.diff = x0 - x1
-        self.wdiff = self.M * self.diff
+        self.wdiff = self.M * (x0 - x1)
         wdiff = self.wdiff.ravel()
         return wdiff.dot(wdiff),
 

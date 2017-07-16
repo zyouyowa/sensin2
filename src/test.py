@@ -1,46 +1,60 @@
 import numpy
 import cv2
 import os
+import chainer
+from chainer import serializers, cuda
+from src.main import SketchSimplification
 
-def weight(x1, alpha, beta, dh, bh):
-    padded_x1 = numpy.pad(x1, dh, 'constant', constant_values=0)
-    M = numpy.ones(x1.shape, x1.dtype)
-    for u in range(dh, x1.shape[0] + dh):
-        for v in range(dh, x1.shape[1] + dh):
-            if padded_x1[u, v] == 1:
-                continue
-            part_x1 = padded_x1[u-dh : u+dh+1, v-dh :v+dh+1]
-            histogram = numpy.histogram(part_x1, bh)
-            for bin_i in range(1, len(histogram[1])):
-                if padded_x1[u, v] < histogram[1][bin_i]:
-                    H_I_u_v = histogram[0][bin_i - 1]#/part_x1.size
-                    M_u_v = min(alpha * numpy.exp(-H_I_u_v) + beta, 1)
-                    M[u - dh, v - dh] = M_u_v
-                    break
-    return M
-    #self.diff = x0 - x1
-    #w_diff = (M * self.diff).ravel()
-    #return numpy.array(w_diff.dot(w_diff) / w_diff.size, dtype=w_diff.dtype),
+H = 256
+W = 256
+
+def devide_img(img):
+    global H, W
+    h, w = img.shape
+    h_size, w_size = h // H, w // W
+    patches = numpy.zeros((h_size, w_size, H, W), numpy.float32)
+    for i in range(h_size):
+        for j in range(w_size):
+            patches[i, j] = img[i*H:(i+1)*H, j*W:(j+1)*W]
+    return patches, (h_size, w_size)
 
 def main():
-    #path = os.path.abspath("./imgs/trains/contour/19.jpg")
-    path = os.path.abspath("./imgs/ayano.png")
-    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)/255
-    def downer(elem, threthold):
-        if elem < threthold:
-            return 0
-        else:
-            return elem
-    vdowner = numpy.vectorize(downer)
-    img_2 = vdowner(img, 0.9)
-    m = weight(img_2, 6, -2, 2, 10)
-    cv2.namedWindow('test2')
-    cv2.namedWindow('weight')
-    cv2.imshow('test2', img_2)
-    cv2.imshow('weight', m)
+    global H, W
+    gpu_device = 0
+    cuda.get_device_from_id(gpu_device)
+    model = SketchSimplification(6, -2, 2, 10)
+    serializers.load_npz('./model_mse.npz', model)
+    model.to_gpu(gpu_device)
+
+    path = os.path.abspath("./imgs/test_in3.png")
+    in_img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)/255
+    out_img = numpy.copy(in_img)
+
+    in_patches, size = devide_img(in_img)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            in_name = 'in_' + str(i) + '_' + str(j)
+            cv2.namedWindow(in_name)
+            cv2.imshow(in_name, in_patches[i, j])
+
+            in_patch = in_patches[i, j]
+            in_patch = in_patch.reshape(1, 1, in_patch.shape[0], in_patch.shape[1])
+            x = chainer.Variable(cuda.to_gpu(in_patch))
+            y = cuda.to_cpu(model.forward(x).data)[0][0] * 255
+
+            out_name = 'out_' + str(i) + '_' + str(j)
+            cv2.namedWindow(out_name)
+            cv2.imshow(out_name, y)
+
+            out_img[i*H:(i+1)*H, j*W:(j+1)*W] = y
+
+    cv2.namedWindow('in')
+    cv2.imshow('in', in_img)
+    cv2.namedWindow('out')
+    cv2.imshow('out', out_img)
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    pass
 
 if __name__ == '__main__':
     main()
